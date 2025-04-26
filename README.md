@@ -317,3 +317,153 @@ Edit
 aws eks update-kubeconfig --region us-west-2 --name my-eks-cluster
 kubectl get nodes
 
+
+
+To set up an IAM user with proper EKS and EC2 permissions, follow these steps:
+
+🧑‍🔧 1. Create an IAM User
+Go to the AWS Console → IAM → Users → Add user
+
+User name: e.g. eks-admin
+
+Access type: ✅ Programmatic access (for Terraform and AWS CLI)
+
+🔒 2. Attach EKS and EC2 Policies
+You can either:
+
+Use AWS managed policies (easy)
+
+Or create a custom policy (more controlled)
+
+✅ Option A: Attach AWS Managed Policies
+During user creation (or later via "Permissions"), attach:
+
+AmazonEKSClusterPolicy
+
+AmazonEKSWorkerNodePolicy
+
+AmazonEKS_CNI_Policy
+
+AmazonEC2FullAccess
+
+IAMFullAccess (needed for node group roles & service accounts)
+
+You can also attach:
+
+AmazonEKSServicePolicy (for managing EKS services like Fargate, etc.)
+
+⚙️ Option B: Use a Custom Policy (Least Privilege)
+Here’s an example of a minimal custom policy to create EKS & EC2 resources:
+
+json
+Copy
+Edit
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "eks:*",
+        "ec2:*",
+        "iam:PassRole",
+        "iam:GetRole",
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:ListInstanceProfiles",
+        "iam:ListRoles"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+Then attach this to your IAM user.
+
+🔑 3. Create and Save Access Keys
+Once created, download or copy the Access Key ID and Secret Access Key.
+
+Set them up locally:
+
+bash
+Copy
+Edit
+aws configure
+# Enter your access key, secret, region (e.g., us-west-2), and output format (e.g., json)
+
+Would you like a Terraform script to create this IAM user and attach policies automatically?
+
+
+
+You said:
+yes
+
+ChatGPT said:
+Here’s a simple Terraform script to create an IAM user with EKS and EC2 permissions automatically:
+
+📁 iam-user.tf
+hcl
+Copy
+Edit
+provider "aws" {
+  region = var.region
+}
+
+resource "aws_iam_user" "eks_user" {
+  name = var.iam_user_name
+  force_destroy = true
+}
+
+resource "aws_iam_user_policy_attachment" "eks_policies" {
+  for_each = toset([
+    "AmazonEKSClusterPolicy",
+    "AmazonEKSWorkerNodePolicy",
+    "AmazonEKS_CNI_Policy",
+    "AmazonEC2FullAccess",
+    "IAMFullAccess"
+  ])
+
+  user       = aws_iam_user.eks_user.name
+  policy_arn = "arn:aws:iam::aws:policy/${each.key}"
+}
+
+resource "aws_iam_access_key" "eks_user_key" {
+  user = aws_iam_user.eks_user.name
+}
+
+output "iam_user_name" {
+  value = aws_iam_user.eks_user.name
+}
+
+output "access_key_id" {
+  value     = aws_iam_access_key.eks_user_key.id
+  sensitive = true
+}
+
+output "secret_access_key" {
+  value     = aws_iam_access_key.eks_user_key.secret
+  sensitive = true
+}
+📁 variables.tf
+hcl
+Copy
+Edit
+variable "region" {
+  default = "us-west-2"
+}
+
+variable "iam_user_name" {
+  default = "eks-admin"
+}
+✅ To Run
+bash
+Copy
+Edit
+terraform init
+terraform apply
+⚠️ Security Note: The access keys will be printed in your terminal output. Store them securely or use a secret manager.
+
+Would you like this zipped or added to the earlier EKS setup as a separate module?
