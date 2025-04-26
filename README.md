@@ -193,5 +193,127 @@ Edit
 terraform apply
 This will attach the policy to the IAM role. If the nodes are already running, the change takes effect right away. No reboot needed.
 
+create terraform EKS from scrach:
+================================
+Creating an EKS (Elastic Kubernetes Service) cluster from scratch using Terraform involves several components, including:
 
+VPC setup
+
+IAM roles and policies
+
+EKS cluster
+
+Node group (workers)
+
+Kubeconfig setup
+
+✅ Prerequisites
+AWS CLI configured (aws configure)
+
+Terraform installed
+
+IAM user with proper EKS and EC2 permissions
+
+🛠 Folder Structure
+plaintext
+Copy
+Edit
+eks-cluster/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+🔧 main.tf
+hcl
+Copy
+Edit
+provider "aws" {
+  region = var.region
+}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.1.1"
+
+  name = "eks-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = slice(data.aws_availability_zones.available.names, 0, 2)
+  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_subnets = ["10.0.3.0/24", "10.0.4.0/24"]
+
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name = "eks-vpc"
+  }
+}
+
+data "aws_availability_zones" "available" {}
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.8.4"
+
+  cluster_name    = var.cluster_name
+  cluster_version = "1.29"
+  subnet_ids      = module.vpc.private_subnets
+  vpc_id          = module.vpc.vpc_id
+
+  enable_irsa = true
+
+  eks_managed_node_groups = {
+    default = {
+      instance_types = ["t3.medium"]
+      desired_size   = 2
+      max_size       = 3
+      min_size       = 1
+    }
+  }
+
+  tags = {
+    Environment = "dev"
+    Terraform   = "true"
+  }
+}
+📥 variables.tf
+hcl
+Copy
+Edit
+variable "region" {
+  default = "us-west-2"
+}
+
+variable "cluster_name" {
+  default = "my-eks-cluster"
+}
+📤 outputs.tf
+hcl
+Copy
+Edit
+output "cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "kubeconfig" {
+  value = module.eks.kubeconfig
+}
+
+output "cluster_endpoint" {
+  value = module.eks.cluster_endpoint
+}
+✅ Initialize and Apply
+bash
+Copy
+Edit
+terraform init
+terraform apply
+🧩 After Terraform
+To access the cluster:
+
+bash
+Copy
+Edit
+aws eks update-kubeconfig --region us-west-2 --name my-eks-cluster
+kubectl get nodes
 
