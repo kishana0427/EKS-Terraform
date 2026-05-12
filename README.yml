@@ -62,9 +62,7 @@ When you launch worker nodes (or use managed node groups), the EC2 instances run
 
 Example using AWS CLI:
 
-bash
-Copy
-Edit
+
 aws iam attach-role-policy \
   --role-name yourNodeInstanceRoleName \
   --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
@@ -110,9 +108,7 @@ The VPC CNI plugin runs as a DaemonSet called aws-node in the kube-system namesp
 
 Run this in your terminal:
 
-bash
-Copy
-Edit
+
 kubectl get pods -n kube-system -l k8s-app=aws-node
 You should see one aws-node pod per node, and they should all be in the Running or Completed state.
 
