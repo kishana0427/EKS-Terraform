@@ -71,7 +71,8 @@ This assumes you already have a role (yourNodeInstanceRoleName) used by your EKS
 Want a full walkthrough using Terraform or AWS Console?
 
 AWS Console:
-=========== Here's a quick step-by-step to attach the AmazonEKS_CNI_Policy to your EKS node IAM role using the AWS Management Console:
+=========== 
+Here's a quick step-by-step to attach the AmazonEKS_CNI_Policy to your EKS node IAM role using the AWS Management Console:
 
 🧭 Steps to Attach AmazonEKS_CNI_Policy in Console:
 ✅ Step 1: Find your EKS Node IAM Role
